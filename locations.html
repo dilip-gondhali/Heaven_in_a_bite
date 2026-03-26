@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Locations | Heaven in a Bite</title>
+    <meta name="description"
+        content="Find Heaven in a Bite near you — 4 outlets across Navi Mumbai: New Panvel, Old Panvel, Kharghar & Kamothe. Open 5:30 PM – 12 AM.">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍰</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        /* ===== LOCATIONS PAGE STYLES ===== */
+        .locations-hero {
+            min-height: 50vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #FFE0F0 0%, #FFB6D5 30%, #F8A4C8 60%, #FDDDE6 100%);
+            padding-top: 120px;
+            padding-bottom: 60px;
+        }
+
+        .locations-hero::before {
+            content: '';
+            position: absolute;
+            top: -150px;
+            right: -150px;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(255, 105, 180, 0.2), transparent 70%);
+            border-radius: 50%;
+            animation: floatOrb 12s ease-in-out infinite;
+        }
+
+        .locations-hero::after {
+            content: '';
+            position: absolute;
+            bottom: -100px;
+            left: -100px;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(232, 103, 154, 0.15), transparent 70%);
+            border-radius: 50%;
+            animation: floatOrb 15s ease-in-out infinite reverse;
+        }
+
+        .locations-hero .section-header {
+            position: relative;
+            z-index: 2;
+        }
+
+        .locations-hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2.4rem, 5vw, 3.6rem);
+            font-weight: 700;
+            color: var(--chocolate);
+            line-height: 1.15;
+            margin-bottom: 16px;
+        }
+
+        .locations-hero h1 .accent {
+            background: linear-gradient(135deg, var(--caramel), var(--rose));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .locations-hero p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .locations-hero .location-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        .locations-hero .location-stat {
+            text-align: center;
+        }
+
+        .locations-hero .location-stat h3 {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--chocolate);
+        }
+
+        .locations-hero .location-stat span {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+
+        /* Map Section */
+        .map-section {
+            padding: 80px 0;
+            background: var(--white);
+        }
+
+        #map {
+            width: 100%;
+            height: 500px;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            border: 3px solid rgba(248, 164, 200, 0.3);
+            z-index: 1;
+        }
+
+        /* Location Cards */
+        .locations-grid-section {
+            padding: 80px 0;
+            background: linear-gradient(180deg, #FFF0F5 0%, #FDDDE6 50%, #FFE0F0 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .locations-grid-section::before {
+            content: '';
+            position: absolute;
+            top: -80px;
+            right: -80px;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255, 105, 180, 0.1), transparent 70%);
+            border-radius: 50%;
+        }
+
+        .locations-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .location-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: var(--radius-lg);
+            padding: 36px;
+            border: 1px solid rgba(255, 182, 213, 0.4);
+            box-shadow: 0 8px 32px rgba(139, 26, 74, 0.06);
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .location-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--caramel), var(--rose));
+            border-radius: 4px 0 0 4px;
+        }
+
+        .location-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(139, 26, 74, 0.14);
+            border-color: rgba(255, 105, 180, 0.5);
+        }
+
+        .location-card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .location-card-number {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--chocolate), var(--caramel));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(139, 26, 74, 0.2);
+        }
+
+        .location-card-title h3 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--chocolate);
+            margin-bottom: 4px;
+        }
+
+        .location-card-title .location-area {
+            font-size: 0.85rem;
+            color: var(--caramel);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .location-card-details {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .location-detail {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .location-detail-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #FFE0F0, #FDDDE6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .location-detail-text {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .location-detail-text a {
+            color: var(--caramel);
+            font-weight: 600;
+        }
+
+        .location-detail-text a:hover {
+            color: var(--chocolate);
+        }
+
+        .location-card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .location-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: var(--radius-full);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition-normal);
+        }
+
+        .location-btn-directions {
+            background: linear-gradient(135deg, var(--chocolate), var(--caramel));
+            color: var(--white);
+            box-shadow: 0 4px 15px rgba(139, 26, 74, 0.2);
+        }
+
+        .location-btn-directions:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 26, 74, 0.3);
+        }
+
+        .location-btn-call {
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--chocolate);
+            border: 2px solid rgba(139, 26, 74, 0.12);
+        }
+
+        .location-btn-call:hover {
+            background: var(--white);
+            border-color: var(--caramel);
+            transform: translateY(-2px);
+        }
+
+        /* Info Banner */
+        .location-info-banner {
+            padding: 60px 0;
+            background: var(--white);
+        }
+
+        .info-banner-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 60px;
+            flex-wrap: wrap;
+            padding: 40px 50px;
+            background: linear-gradient(135deg, #8B1A4A, #C41E6A, #D63384);
+            border-radius: var(--radius-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-banner-content::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(255, 105, 180, 0.2), transparent 70%);
+            border-radius: 50%;
+        }
+
+        .info-banner-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: var(--white);
+            position: relative;
+            z-index: 2;
+        }
+
+        .info-banner-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .info-banner-text h4 {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .info-banner-text span {
+            font-size: 0.88rem;
+            opacity: 0.8;
+        }
+
+        /* Back to Home link */
+        .back-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+            transition: color var(--transition-fast);
+        }
+
+        .back-home:hover {
+            color: var(--chocolate);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .locations-grid {
+                grid-template-columns: 1fr;
+            }
+
+            #map {
+                height: 350px;
+                border-radius: var(--radius-lg);
+            }
+
+            .locations-hero .location-stats {
+                gap: 24px;
+            }
+
+            .info-banner-content {
+                flex-direction: column;
+                gap: 24px;
+                padding: 30px;
+                text-align: center;
+            }
+
+            .info-banner-item {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .location-card {
+                padding: 28px;
+            }
+
+            .location-card-actions {
+                flex-direction: column;
+            }
+
+            .location-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .locations-hero h1 {
+                font-size: 2rem;
+            }
+
+            .locations-hero .location-stats {
+                flex-direction: column;
+                gap: 16px;
+            }
+        }
+
+        /* Leaflet popup override */
+        .leaflet-popup-content-wrapper {
+            border-radius: 16px !important;
+            box-shadow: 0 8px 30px rgba(139, 26, 74, 0.15) !important;
+            border: 1px solid rgba(255, 182, 213, 0.4) !important;
+        }
+
+        .leaflet-popup-content {
+            margin: 16px !important;
+            font-family: var(--font-body) !important;
+        }
+
+        .leaflet-popup-content h4 {
+            font-family: var(--font-display);
+            color: var(--chocolate);
+            margin-bottom: 4px;
+            font-size: 1rem;
+        }
+
+        .leaflet-popup-content p {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .map-popup-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--chocolate), var(--caramel));
+            color: white;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar scrolled" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <img src="images/logo.png" alt="Heaven in a Bite" class="nav-logo-img">
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html#products">Flavors</a></li>
+                <li><a href="index.html#menu">Menu</a></li>
+                <li><a href="locations.html" style="color: var(--chocolate);">Locations</a></li>
+                <li><a href="index.html#reviews">Reviews</a></li>
+                <li><a href="index.html#franchise">Franchise</a></li>
+                <li><a href="index.html#contact">Contact</a></li>
+                <li><a href="index.html#order" class="nav-cta">Order Now</a></li>
+            </ul>
+            <div class="menu-toggle" id="menuToggle">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
+    <!-- ===== HERO ===== -->
+    <section class="locations-hero">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">📍 Find Us</div>
+                <h1>Visit Us <span class="accent">Near You</span></h1>
+                <p>4 outlets across Navi Mumbai — bringing heaven closer to your doorstep, one bite at a time.</p>
+                <div class="location-stats">
+                    <div class="location-stat">
+                        <h3>4</h3>
+                        <span>Outlets</span>
+                    </div>
+                    <div class="location-stat">
+                        <h3>5:30 PM</h3>
+                        <span>We Open</span>
+                    </div>
+                    <div class="location-stat">
+                        <h3>12 AM</h3>
+                        <span>We Close</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== MAP SECTION ===== -->
+    <section class="map-section">
+        <div class="container">
+            <div id="map"></div>
+        </div>
+    </section>
+
+    <!-- ===== LOCATION CARDS ===== -->
+    <section class="locations-grid-section">
+        <div class="container">
+            <div class="section-header reveal">
+                <div class="section-tag">Our Outlets</div>
+                <h2>All Locations</h2>
+                <p>Click on any card to get directions on Google Maps.</p>
+            </div>
+
+            <div class="locations-grid">
+
+                <!-- Location 1 — New Panvel East -->
+                <div class="location-card reveal"
+                    onclick="window.open('https://www.google.com/maps/search/?api=1&query=Shop+no+2+Prajapati+Ornate+Sector+10+New+Panvel+East+Navi+Mumbai+410206', '_blank')">
+                    <div class="location-card-header">
+                        <div class="location-card-number">1</div>
+                        <div class="location-card-title">
+                            <h3>Heaven in a Bite — New Panvel</h3>
+                            <span class="location-area">New Panvel East</span>
+                        </div>
+                    </div>
+                    <div class="location-card-details">
+                        <div class="location-detail">
+                            <div class="location-detail-icon">📍</div>
+                            <div class="location-detail-text">
+                                Shop no-2, Prajapati Ornate, Plot No-191 to 197 & 199 to 206, Sector-10, Adai Road, Near
+                                Zudio & Croma, Opp. Rajiv Gandhi Ground, New Panvel East, Navi Mumbai — 410206
+                            </div>
+                        </div>
+                        <div class="location-detail">
+                            <div class="location-detail-icon">🕐</div>
+                            <div class="location-detail-text">5:30 PM – 12:00 AM (Midnight)</div>
+                        </div>
+                        <div class="location-detail">
+                            <div class="location-detail-icon">📞</div>
+                            <div class="location-detail-text"><a href="tel:+917045618899">+91 7045618899</a></div>
+                        </div>
+                    </div>
+                    <div class="location-card-actions">
+                        <a href="https://www.google.com/maps/search/?api=1&query=Shop+no+2+Prajapati+Ornate+Sector+10+New+Panvel+East+Navi+Mumbai+410206"
+                            target="_blank" class="location-btn location-btn-directions"
+                            onclick="event.stopPropagation()">
+                            🗺️ Get Directions
+                        </a>
+                        <a href="tel:+917045618899" class="location-btn location-btn-call"
+                            onclick="event.stopPropagation()">
+                            📞 Call Now
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Location 2 — Old Panvel -->
+                <div class="location-card reveal"
+                    onclick="window.open('https://www.google.com/maps/search/?api=1&query=Vadale+Talav+Rd+Old+Panvel+Navi+Mumbai+410206', '_blank')">
+                    <div class="location-card-header">
+                        <div class="location-card-number">2</div>
+                        <div class="location-card-title">
+                            <h3>Heaven in a Bite — Old Panvel</h3>
+                            <span class="location-area">Old Panvel</span>
+                        </div>
+                    </div>
+                    <div class="location-card-details">
+                        <div class="location-detail">
+                            <div class="location-detail-icon">📍</div>
+                            <div class="location-detail-text">
+                                Vadale Talav Road, Old Panvel, Panvel, Navi Mumbai, Maharashtra — 410206
+                            </div>
+                        </div>
+                        <div class="location-detail">
+                            <div class="location-detail-icon">🕐</div>
+                            <div class="location-detail-text">5:30 PM – 12:00 AM (Midnight)</div>
+                        </div>
+                        <div class="location-detail">
+                            <div class="location-detail-icon">📞</div>
+                            <div class="location-detail-text"><a href="tel:+917045618899">+91 7045618899</a></div>
+                        </div>
+                    </div>
+                    <div class="location-card-actions">
+                        <a href="https://www.google.com/maps/search/?api=1&query=Vadale+Talav+Rd+Old+Panvel+Navi+Mumbai+410206"
+                            target="_blank" class="location-btn location-btn-directions"
+                            onclick="event.stopPropagation()">
+                            🗺️ Get Directions
+                        </a>
+                        <a href="tel:+917045618899" class="location-btn location-btn-call"
+                            onclick="event.stopPropagation()">
+                            📞 Call Now
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Location 3 — Kharghar -->
+                <div class="location-card reveal"
+                    onclick="window.open('https://www.google.com/maps/search/?api=1&query=Shop+No+4+Sai+Sagar+CHS+Plot+No+50+Sector+20+Kharghar+Navi+Mumbai+410210', '_blank')">
+                    <div class="location-card-header">
+                        <div class="location-card-number">3</div>
+                        <div class="location-card-title">
+                            <h3>Heaven in a Bite — Kharghar</h3>
+                            <span class="location-area">Kharghar</span>
+                        </div>
+                    </div>
+                    <div class="location-card-details">
+                        <div class="location-detail">
+                            <div class="location-detail-icon">📍</div>
+                            <div class="location-detail-text">
+                                Shop No 4, Sai Sagar CHS, Plot No 50, Sector 20, Kharghar, Navi Mumbai, Maharashtra —
+                                410210
+                            </div>
+                        </div>
+                        <div class="location-detail">
+                            <div class="location-detail-icon">🕐</div>
+                            <div class="location-detail-text">5:30 PM – 12:00 AM (Midnight)</div>
+                        </div>
+                        <div class="location-detail">
+                            <div class="location-detail-icon">📞</div>
+                            <div class="location-detail-text"><a href="tel:+917045618899">+91 7045618899</a></div>
+                        </div>
+                    </div>
+                    <div class="location-card-actions">
+                        <a href="https://www.google.com/maps/search/?api=1&query=Shop+No+4+Sai+Sagar+CHS+Sector+20+Kharghar+Navi+Mumbai+410210"
+                            target="_blank" class="location-btn location-btn-directions"
+                            onclick="event.stopPropagation()">
+                            🗺️ Get Directions
+                        </a>
+                        <a href="tel:+917045618899" class="location-btn location-btn-call"
+                            onclick="event.stopPropagation()">
+                            📞 Call Now
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Location 4 — Kamothe -->
+                <div class="location-card reveal"
+                    onclick="window.open('https://www.google.com/maps/search/?api=1&query=Shop+No+5+Shanti+Kunj+Plot+No+9+Sector+19+Kamothe+Navi+Mumbai', '_blank')">
+                    <div class="location-card-header">
+                        <div class="location-card-number">4</div>
+                        <div class="location-card-title">
+                            <h3>Heaven in a Bite — Kamothe</h3>
+                            <span class="location-area">Kamothe</span>
+                        </div>
+                    </div>
+                    <div class="location-card-details">
+                        <div class="location-detail">
+                            <div class="location-detail-icon">📍</div>
+                            <div class="location-detail-text">
+                                Shop No 5, Shanti Kunj, Plot No 9, Sector 19, Kamothe, Navi Mumbai
+                            </div>
+                        </div>
+                        <div class="location-detail">
+                            <div class="location-detail-icon">🕐</div>
+                            <div class="location-detail-text">5:30 PM – 12:00 AM (Midnight)</div>
+                        </div>
+                        <div class="location-detail">
+                            <div class="location-detail-icon">📞</div>
+                            <div class="location-detail-text"><a href="tel:+917045618899">+91 7045618899</a></div>
+                        </div>
+                    </div>
+                    <div class="location-card-actions">
+                        <a href="https://www.google.com/maps/search/?api=1&query=Shop+No+5+Shanti+Kunj+Sector+19+Kamothe+Navi+Mumbai"
+                            target="_blank" class="location-btn location-btn-directions"
+                            onclick="event.stopPropagation()">
+                            🗺️ Get Directions
+                        </a>
+                        <a href="tel:+917045618899" class="location-btn location-btn-call"
+                            onclick="event.stopPropagation()">
+                            📞 Call Now
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== INFO BANNER ===== -->
+    <section class="location-info-banner">
+        <div class="container">
+            <div class="info-banner-content">
+                <div class="info-banner-item">
+                    <div class="info-banner-icon">🕐</div>
+                    <div class="info-banner-text">
+                        <h4>Open Daily</h4>
+                        <span>5:30 PM – 12:00 AM</span>
+                    </div>
+                </div>
+                <div class="info-banner-item">
+                    <div class="info-banner-icon">📞</div>
+                    <div class="info-banner-text">
+                        <h4>Call / WhatsApp</h4>
+                        <span>+91 7045618899</span>
+                    </div>
+                </div>
+                <div class="info-banner-item">
+                    <div class="info-banner-icon">🛵</div>
+                    <div class="info-banner-text">
+                        <h4>Delivery Available</h4>
+                        <span>Order on WhatsApp</span>
+                    </div>
+                </div>
+                <div class="info-banner-item">
+                    <div class="info-banner-icon">🍰</div>
+                    <div class="info-banner-text">
+                        <h4>32+ Items</h4>
+                        <span>On Our Menu</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <img src="images/logo.png" alt="Heaven in a Bite" class="footer-logo-img">
+                    <p>Premium cheesecake jars & cake bowls crafted with love in Panvel, Mumbai. Every bite is a little
+                        piece of heaven.</p>
+                    <div class="footer-socials">
+                        <a href="#" aria-label="Instagram">📷</a>
+                        <a href="#" aria-label="Facebook">📘</a>
+                        <a href="#" aria-label="WhatsApp">💬</a>
+                        <a href="#" aria-label="YouTube">🎬</a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="index.html#products">Our Flavors</a></li>
+                        <li><a href="index.html#menu">Full Menu</a></li>
+                        <li><a href="locations.html">Locations</a></li>
+                        <li><a href="index.html#order">Order Now</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Our Outlets</h4>
+                    <ul>
+                        <li><a href="#" onclick="focusLocation(0); return false;">New Panvel</a></li>
+                        <li><a href="#" onclick="focusLocation(1); return false;">Old Panvel</a></li>
+                        <li><a href="#" onclick="focusLocation(2); return false;">Kharghar</a></li>
+                        <li><a href="#" onclick="focusLocation(3); return false;">Kamothe</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Contact</h4>
+                    <ul>
+                        <li><a href="tel:+917045618899">+91 7045618899</a></li>
+                        <li><a href="index.html#contact">Navi Mumbai</a></li>
+                        <li><a href="index.html#franchise">Franchise</a></li>
+                        <li><a href="https://wa.me/917045618899" target="_blank">WhatsApp</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Heaven in a Bite. All rights reserved.</p>
+                <p>Made with 🍰 & ❤️ in Mumbai</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top -->
+    <button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ===== LOCATIONS DATA =====
+        const locations = [
+            {
+                name: "Heaven in a Bite — New Panvel",
+                area: "New Panvel East",
+                lat: 19.0060,
+                lng: 73.1200,
+                address: "Shop no-2, Prajapati Ornate, Sector-10, Near Zudio & Croma, New Panvel East",
+                pin: "410206"
+            },
+            {
+                name: "Heaven in a Bite — Old Panvel",
+                area: "Old Panvel",
+                lat: 18.9894,
+                lng: 73.1175,
+                address: "Vadale Talav Rd, Old Panvel, Panvel",
+                pin: "410206"
+            },
+            {
+                name: "Heaven in a Bite — Kharghar",
+                area: "Kharghar",
+                lat: 19.0474,
+                lng: 73.0680,
+                address: "Shop No 4, Sai Sagar CHS, Sector 20, Kharghar",
+                pin: "410210"
+            },
+            {
+                name: "Heaven in a Bite — Kamothe",
+                area: "Kamothe",
+                lat: 19.0200,
+                lng: 73.0970,
+                address: "Shop No 5, Shanti Kunj, Sector 19, Kamothe",
+                pin: ""
+            }
+        ];
+
+        // ===== INITIALIZE MAP =====
+        const map = L.map('map', {
+            scrollWheelZoom: false
+        }).setView([19.015, 73.095], 12);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Custom pink marker icon
+        const pinkIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="
+                width: 36px;
+                height: 36px;
+                background: linear-gradient(135deg, #8B1A4A, #D4447C);
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                border: 3px solid white;
+                box-shadow: 0 4px 12px rgba(139, 26, 74, 0.35);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            "><span style="transform: rotate(45deg); font-size: 16px;">🍰</span></div>`,
+            iconSize: [36, 36],
+            iconAnchor: [18, 36],
+            popupAnchor: [0, -36]
+        });
+
+        // Add markers
+        const markers = [];
+        locations.forEach((loc, i) => {
+            const marker = L.marker([loc.lat, loc.lng], { icon: pinkIcon })
+                .addTo(map)
+                .bindPopup(`
+                    <span class="map-popup-badge">${loc.area}</span>
+                    <h4>${loc.name}</h4>
+                    <p>${loc.address}</p>
+                    <p style="margin-top:6px; color: var(--caramel); font-weight: 600;">🕐 5:30 PM – 12 AM</p>
+                `);
+            markers.push(marker);
+        });
+
+        // Fit map to show all markers
+        const group = L.featureGroup(markers);
+        map.fitBounds(group.getBounds().pad(0.15));
+
+        // Focus on a location (called from footer links)
+        function focusLocation(index) {
+            const loc = locations[index];
+            map.setView([loc.lat, loc.lng], 16);
+            markers[index].openPopup();
+            document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // ===== MOBILE MENU =====
+        const menuToggle = document.getElementById('menuToggle');
+        const navLinks = document.getElementById('navLinks');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+
+        const toggleMenu = () => {
+            menuToggle.classList.toggle('active');
+            navLinks.classList.toggle('active');
+            mobileOverlay.classList.toggle('active');
+            document.body.style.overflow = navLinks.classList.contains('active') ? 'hidden' : '';
+        };
+
+        menuToggle.addEventListener('click', toggleMenu);
+        mobileOverlay.addEventListener('click', toggleMenu);
+
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (navLinks.classList.contains('active')) toggleMenu();
+            });
+        });
+
+        // ===== SCROLL REVEAL =====
+        const revealElements = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+
+        revealElements.forEach(el => observer.observe(el));
+
+        // ===== BACK TO TOP =====
+        const backToTop = document.getElementById('backToTop');
+        window.addEventListener('scroll', () => {
+            backToTop.classList.toggle('visible', window.scrollY > 500);
+        }, { passive: true });
+
+        backToTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    </script>
+
+</body>
+
+</html>
